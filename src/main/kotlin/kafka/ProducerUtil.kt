@@ -14,6 +14,11 @@ class ProducerUtil<Value> : Closeable {
     private val producer = KafkaProducer<String, Value>(properties())
 
     fun send(topic: String, value: Value) {
+        val key = UUID.randomUUID().toString()
+        send(topic, key, value)
+    }
+
+    fun send(topic: String, key: String, value: Value) {
         val callback = Callback { metadata, exception ->
             if (exception != null) {
                 println("Erro ao enviar msg")
@@ -21,7 +26,6 @@ class ProducerUtil<Value> : Closeable {
             }
             println("Sucesso: Msg enviada = ${metadata.topic()} ::: ${metadata.partition()} / ${metadata.offset()} / ${metadata.timestamp()}")
         }
-        val key = UUID.randomUUID().toString()
         val record = ProducerRecord(topic, key, value)
         producer.send(record, callback).get()
     }
