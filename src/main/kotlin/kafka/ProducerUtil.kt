@@ -35,6 +35,7 @@ class ProducerUtil<Value> : Closeable {
         props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9094")
         props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
         props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerialize::class.java.name)
+        props.setProperty(ProducerConfig.ACKS_CONFIG, "all")
         return props
     }
 
