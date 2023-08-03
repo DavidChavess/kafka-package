@@ -1,4 +1,4 @@
-package kafka
+package kafka.serialization
 
 import org.apache.kafka.common.serialization.StringDeserializer
 

@@ -1,5 +1,6 @@
 package kafka
 
+import kafka.serialization.JsonSerialize
 import org.apache.kafka.clients.producer.Callback
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -13,14 +14,14 @@ class ProducerUtil<Value>(
     private val overrideProperties: Map<String, String> = mapOf()
 ) : Closeable {
 
-    private val producer = KafkaProducer<String, Value>(properties())
+    private val producer = KafkaProducer<String, Message<Value>>(properties())
 
-    fun send(topic: String, value: Value) {
+    fun send(topic: String, message: Message<Value>) {
         val key = UUID.randomUUID().toString()
-        send(topic, key, value)
+        send(topic, key, message)
     }
 
-    fun send(topic: String, key: String, value: Value) {
+    fun send(topic: String, key: String, message: Message<Value>) {
         val callback = Callback { metadata, exception ->
             if (exception != null) {
                 println("Erro ao enviar msg")
@@ -28,7 +29,7 @@ class ProducerUtil<Value>(
             }
             println("Sucesso: Msg enviada = ${metadata.topic()} ::: ${metadata.partition()} / ${metadata.offset()} / ${metadata.timestamp()}")
         }
-        val record = ProducerRecord(topic, key, value)
+        val record = ProducerRecord(topic, key, message)
         producer.send(record, callback).get()
     }
 

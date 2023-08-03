@@ -1,5 +1,6 @@
 package kafka
 
+import kafka.serialization.JsonDeserialize
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -12,13 +13,12 @@ import java.util.regex.Pattern
 class ConsumerUtil<Value>(
     private val topic: String,
     private val groupId: String,
-    private val type: Class<Value>,
     private val overrideProperties: Map<String, String> = mapOf()
 ) : Closeable {
 
-    private val consumer = KafkaConsumer<String, Value>(properties())
+    private val consumer = KafkaConsumer<String, Message<Value>>(properties())
 
-    fun execute(callback: (Value) -> Unit) {
+    fun execute(callback: (Message<Value>) -> Unit) {
         consumer.subscribe(Pattern.compile(topic))
 
         while (true) {
@@ -47,7 +47,6 @@ class ConsumerUtil<Value>(
         props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1")
         props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserialize::class.java.name)
-        props.setProperty(JsonDeserialize.TYPE_CONFIG, type.name)
         props.putAll(overrideProperties)
         return props
     }
