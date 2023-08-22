@@ -1,14 +1,16 @@
 package kafka
 
-import kafka.serialization.JsonDeserialize
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.common.serialization.StringDeserializer
 import java.io.Closeable
 import java.lang.Thread.sleep
 import java.time.Duration
-import java.util.*
+import java.util.Properties
+import java.util.UUID
 import java.util.regex.Pattern
+import kafka.serialization.JsonDeserialize
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.common.serialization.StringDeserializer
 
 class ConsumerUtil<Value>(
     private val topic: String,
@@ -17,27 +19,48 @@ class ConsumerUtil<Value>(
 ) : Closeable {
 
     private val consumer = KafkaConsumer<String, Message<Value>>(properties())
+    private val dlqProducer = ProducerUtil<DlqMessage<Value>>()
 
     fun execute(callback: (Message<Value>) -> Unit) {
         consumer.subscribe(Pattern.compile(topic))
-
         while (true) {
             val records = consumer.poll(Duration.ofMillis(100))
             if (!records.isEmpty) {
                 records.forEach {
                     println("-----------------------")
-                    println("Processing new message")
+                    println("Processing new message...")
                     println("Record Key: ${it.key()}")
                     println("Value: ${it.value()}")
                     println("Part: ${it.partition()}")
                     println("OffSet: ${it.offset()}")
                     println("Topic: ${it.topic()}")
                     println("Message processed!")
-                    callback(it.value())
+                    try {
+                        callback(it.value())
+                    } catch (ex: Exception) {
+                        ex.printStackTrace()
+                        sendToDlq(it)
+                    }
                 }
             }
             sleep(5000)
         }
+    }
+
+    private fun sendToDlq(consumerRecord: ConsumerRecord<String, Message<Value>>) {
+        val message = consumerRecord.value()
+        val dlqTopic = "${consumerRecord.topic()}_DLQ"
+        val correlationId = "DeadLetter(${UUID.randomUUID()}), ${message.correlationId}"
+
+        println("Send message ${message.payload} to DLQ $dlqTopic")
+
+        val dlqMessage = DlqMessage(correlationId, consumerRecord.topic(), message.payload, consumerRecord.timestamp())
+
+        dlqProducer.sendAsync(
+            dlqTopic,
+            consumerRecord.key(),
+            Message(correlationId, dlqMessage)
+        )
     }
 
     private fun properties(): Properties {

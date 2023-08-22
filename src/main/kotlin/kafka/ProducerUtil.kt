@@ -1,14 +1,16 @@
 package kafka
 
+import java.io.Closeable
+import java.util.Properties
+import java.util.UUID
+import java.util.concurrent.Future
 import kafka.serialization.JsonSerialize
 import org.apache.kafka.clients.producer.Callback
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.StringSerializer
-import java.io.Closeable
-import java.util.Properties
-import java.util.UUID
 
 class ProducerUtil<Value>(
     private val overrideProperties: Map<String, String> = mapOf()
@@ -16,21 +18,24 @@ class ProducerUtil<Value>(
 
     private val producer = KafkaProducer<String, Message<Value>>(properties())
 
-    fun send(topic: String, message: Message<Value>) {
-        val key = UUID.randomUUID().toString()
-        send(topic, key, message)
+    fun sendAsync(topic: String, key: String = UUID.randomUUID().toString(), message: Message<Value>) {
+        sendMessage(topic, key, message)
     }
 
-    fun send(topic: String, key: String, message: Message<Value>) {
+    fun send(topic: String, key: String = UUID.randomUUID().toString(), message: Message<Value>) {
+        sendMessage(topic, key, message)?.get()
+    }
+
+    private fun sendMessage(topic: String, key: String, message: Message<Value>): Future<RecordMetadata>? {
         val callback = Callback { metadata, exception ->
             if (exception != null) {
                 println("Erro ao enviar msg")
                 exception.printStackTrace()
             }
-            println("Sucesso: Msg enviada = ${metadata.topic()} ::: ${metadata.partition()} / ${metadata.offset()} / ${metadata.timestamp()}")
+            println("Sucesso: Msg enviada = ${metadata.topic()} ::: part: ${metadata.partition()} / off:${metadata.offset()} / tim:${metadata.timestamp()}")
         }
         val record = ProducerRecord(topic, key, message)
-        producer.send(record, callback).get()
+        return producer.send(record, callback)
     }
 
     private fun properties(): Properties {
