@@ -14,7 +14,6 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("org.apache.kafka:kafka-clients:3.5.0")
-    implementation("org.slf4j:slf4j-simple:2.0.7")
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
