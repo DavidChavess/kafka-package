@@ -32,7 +32,7 @@ publishing {
         create<MavenPublication>("maven") {
             groupId = "com.davidchavess"
             artifactId = "kafka-package"
-            version = "1.6"
+            version = "1.6.1"
             from(components["java"])
         }
     }
