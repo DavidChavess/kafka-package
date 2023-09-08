@@ -70,6 +70,7 @@ class ConsumerUtil<Value>(
         props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1")
         props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserialize::class.java.name)
+        props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, UUID.randomUUID().toString())
         props.putAll(overrideProperties)
         return props
     }
